@@ -1,4 +1,4 @@
-# Image Authentication System
+# AI-Generated Image Dectection System
 
 A Flask-based web application for detecting fake/real images using deep learning.
 
