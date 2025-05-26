@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - SecureAuth{% endblock %}
+
+{% block content %}
+<!-- Add Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<div class="container">
+    <!-- Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Users</h5>
+                    <h2 class="card-text">{{ total_users }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Reports Generated</h5>
+                    <h2 class="card-text">{{ total_reports }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Activity Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">User Activity</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Joined</th>
+                            <th>Last Login</th>
+                            <th>Login Count</th>
+                            <th>Reports Generated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        {% if not user.is_admin %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else 'Never' }}</td>
+                            <td>{{ user.login_count }}</td>
+                            <td>{{ reports_by_user.get(user.id, 0) }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Reports -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">Recent Reports</h4>
+        </div>
+        <div class="card-body">
+            {% if reports %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Report ID</th>
+                            <th>User</th>
+                            <th>Generated On</th>
+                            <th>Prediction</th>
+                            <th>Confidence</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports|sort(attribute='timestamp', reverse=True) %}
+                        {% if loop.index <= 10 %}
+                        <tr>
+                            <td>#{{ report.id }}</td>
+                            <td>{{ report.user.username }}</td>
+                            <td>{{ report.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>
+                                <span class="badge {% if report.prediction == 'Fake' %}bg-danger{% else %}bg-success{% endif %}">
+                                    {{ report.prediction }}
+                                </span>
+                            </td>
+                            <td>{{ "%.2f"|format(report.confidence) }}%</td>
+                            <td>
+                                <a href="{{ url_for('generate_pdf_report', report_id=report.id) }}" 
+                                   class="btn btn-sm btn-primary" 
+                                   download>
+                                    <i class="fas fa-download"></i> Download PDF
+                                </a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                <h5>No Reports Generated Yet</h5>
+                <p class="text-muted">Reports will appear here once users start generating them.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+}
+
+.card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--border-radius);
+    pointer-events: none;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 1em;
+}
+
+.btn-sm {
+    border-radius: 50px;
+}
+
+.btn-sm::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1.5px solid var(--border-color);
+    border-radius: 50px;
+    pointer-events: none;
+}
+</style>
+{% endblock %} 

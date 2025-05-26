@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}Scan - SecureAuth{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Upload Form -->
+    <div class="card mb-4 {% if result %}d-none{% endif %}" id="upload-card">
+        <div class="card-header">
+            <h4 class="mb-0">Upload Image for Analysis</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data" class="mb-3" id="upload-form">
+                <div class="mb-3">
+                    <label for="file" class="form-label">Choose an image file:</label>
+                    <input type="file" class="form-control" id="file" name="file" accept=".jpg,.jpeg,.png" required>
+                    <div class="form-text">Supported formats: JPG, JPEG, PNG</div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="analyze-btn">
+                    <span class="normal-state">Analyze Image</span>
+                    <span class="loading-state d-none">
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Analyzing...
+                    </span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if result %}
+    <!-- Results Section -->
+    <div class="results-section" id="results-section">
+        <!-- Main Results Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Analysis Results</h4>
+                <div class="d-flex align-items-center">
+                    {% if result.prediction %}
+                    <div class="d-flex align-items-center">
+                        <span class="badge {% if result.prediction == 'Fake' %}bg-danger{% else %}bg-success{% endif %} fs-5 me-3">
+                            {{ result.prediction }} {% if result.confidence %}({{ "%.2f"|format(result.confidence) }}%){% endif %}
+                        </span>
+                        <a href="{{ url_for('generate_pdf_report', report_id=result.id) if result.id else '#' }}" 
+                           class="btn btn-primary btn-sm {% if not result.id %}disabled{% endif %}"
+                           target="_blank">
+                            <i class="fas fa-file-pdf me-1"></i> Print PDF
+                        </a>
+                    </div>
+                    {% endif %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-sm ms-2">
+                        <i class="fas fa-redo me-1"></i> Scan Another
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Image Comparison Section -->
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">Original Image</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                {% if result.original_image %}
+                                <img src="{{ url_for('static', filename='uploads/' + result.original_image) }}" 
+                                     class="img-fluid rounded" alt="Original Image"
+                                     style="max-height: 300px;">
+                                {% else %}
+                                <div class="alert alert-warning">Original image not available</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">Error Level Analysis (ELA)</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                {% if result.ela_image %}
+                                <img src="{{ url_for('static', filename='uploads/' + result.ela_image) }}" 
+                                     class="img-fluid rounded" alt="ELA Image"
+                                     style="max-height: 300px;">
+                                {% else %}
+                                <div class="alert alert-warning">ELA image not available</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Neural Network Analysis -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Neural Network Layer Activations</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% for activation in [
+                                        ('Layer 1 Activations', result.activation1),
+                                        ('Layer 2 Activations', result.activation2),
+                                        ('Layer 3 Activations', result.activation3)
+                                    ] %}
+                                    <div class="col-md-4 mb-3">
+                                        <h6>{{ activation[0] }}</h6>
+                                        {% if activation[1] %}
+                                        <img src="{{ url_for('static', filename='uploads/' + activation[1]) }}" 
+                                             class="img-fluid rounded" alt="{{ activation[0] }}"
+                                             style="max-height: 200px;">
+                                        {% else %}
+                                        <div class="alert alert-warning">Activation image not available</div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grad-CAM Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Grad-CAM Heatmap</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                {% if result.gradcam %}
+                                <img src="{{ url_for('static', filename='uploads/' + result.gradcam) }}" 
+                                     class="img-fluid rounded" alt="Grad-CAM Heatmap"
+                                     style="max-height: 400px;">
+                                {% else %}
+                                <div class="alert alert-warning">Grad-CAM heatmap not available</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metadata Section -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Image Metadata</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if result.metadata %}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="border-bottom pb-2">Basic Information</h6>
+                                        <dl class="row">
+                                            {% for field, label in [
+                                                ('format', 'Format'),
+                                                ('mode', 'Mode'),
+                                                ('dimensions', 'Dimensions'),
+                                                ('file_size', 'File Size'),
+                                                ('created_time', 'Created'),
+                                                ('modified_time', 'Modified')
+                                            ] %}
+                                            <dt class="col-sm-4">{{ label }}:</dt>
+                                            <dd class="col-sm-8">{{ result.metadata.get(field, 'N/A') }}</dd>
+                                            {% endfor %}
+                                        </dl>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <h6 class="border-bottom pb-2">File Hashes</h6>
+                                        <dl class="row">
+                                            {% for hash_type, label in [('sha256', 'SHA-256'), ('md5', 'MD5')] %}
+                                            <dt class="col-sm-3">{{ label }}:</dt>
+                                            <dd class="col-sm-9">
+                                                <code class="text-break">{{ result.metadata.get(hash_type, 'N/A') }}</code>
+                                            </dd>
+                                            {% endfor %}
+                                        </dl>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <h6 class="border-bottom pb-2">EXIF Data</h6>
+                                        {% if result.metadata.exif %}
+                                            {% if result.metadata.exif is string %}
+                                                <p>{{ result.metadata.exif }}</p>
+                                            {% else %}
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-hover">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Tag</th>
+                                                                <th>Value</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for key, value in result.metadata.exif.items() %}
+                                                            <tr>
+                                                                <td>{{ key }}</td>
+                                                                <td>{{ value }}</td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            {% endif %}
+                                        {% else %}
+                                            <div class="alert alert-info">No EXIF data available</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="alert alert-warning">Metadata not available</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Timestamp -->
+                <div class="text-muted mt-4 pt-3 border-top">
+                    Analysis performed on: {{ result.timestamp }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.badge {
+    font-size: 0.9rem;
+    padding: 0.5em 1em;
+}
+
+.img-fluid {
+    object-fit: contain;
+}
+
+/* Loading Overlay Styles */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(5px);
+}
+
+.loading-overlay.active {
+    display: flex;
+}
+
+.loading-content {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    max-width: 90%;
+    width: 400px;
+}
+
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #0d6efd;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1.5rem;
+}
+
+.loading-text {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.loading-subtext {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Button Loading State */
+#analyze-btn {
+    position: relative;
+    min-width: 150px;
+}
+
+#analyze-btn .normal-state,
+#analyze-btn .loading-state {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+#analyze-btn .loading-state {
+    opacity: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#analyze-btn.loading .normal-state {
+    opacity: 0;
+}
+
+#analyze-btn.loading .loading-state {
+    opacity: 1;
+}
+
+#analyze-btn.loading {
+    pointer-events: none;
+}
+
+/* Print styles */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .results-section, .results-section * {
+        visibility: visible;
+    }
+    .results-section {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    .btn-group, .btn-primary {
+        display: none !important;
+    }
+    .card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    .card:hover {
+        transform: none;
+    }
+    .img-fluid {
+        max-height: 300px !important;
+    }
+    .table {
+        font-size: 12px;
+    }
+    .badge {
+        border: 1px solid #000;
+    }
+    .alert {
+        border: 1px solid #000;
+    }
+}
+</style>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Analyzing Image</div>
+        <div class="loading-subtext">This may take a few moments...</div>
+    </div>
+</div>
+
+<script>
+document.getElementById('upload-form').addEventListener('submit', function(e) {
+    // Show loading overlay
+    document.getElementById('loadingOverlay').classList.add('active');
+    
+    // Add loading state to button
+    const analyzeBtn = document.getElementById('analyze-btn');
+    analyzeBtn.classList.add('loading');
+    
+    // Disable the form to prevent multiple submissions
+    const form = this;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    
+    // Optional: Add a timeout to show progress
+    let dots = 0;
+    const loadingText = document.querySelector('.loading-text');
+    const originalText = loadingText.textContent;
+    
+    const loadingInterval = setInterval(() => {
+        dots = (dots + 1) % 4;
+        loadingText.textContent = originalText + '.'.repeat(dots);
+    }, 500);
+    
+    // Clear interval when the page changes
+    window.addEventListener('beforeunload', () => {
+        clearInterval(loadingInterval);
+    });
+});
+
+// Handle form submission errors
+window.addEventListener('error', function() {
+    document.getElementById('loadingOverlay').classList.remove('active');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    analyzeBtn.classList.remove('loading');
+    analyzeBtn.disabled = false;
+});
+
+function printToPDF() {
+    // Hide elements that shouldn't be printed
+    const noPrintElements = document.querySelectorAll('.no-print');
+    noPrintElements.forEach(el => el.classList.add('d-none'));
+    
+    // Print the page
+    window.print();
+    
+    // Show the elements again
+    noPrintElements.forEach(el => el.classList.remove('d-none'));
+}
+</script>
+{% endblock %} 

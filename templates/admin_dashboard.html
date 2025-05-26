@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Admin Dashboard</h2>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Users</h5>
+                    <p class="card-text display-4">{{ users|length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Scans</h5>
+                    <p class="card-text display-4">{{ total_scans }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Fake Images</h5>
+                    <p class="card-text display-4">{{ fake_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Real Images</h5>
+                    <p class="card-text display-4">{{ total_scans - fake_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>User Management</h4>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                Add New User
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Admin Status</th>
+                            <th>Total Scans</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <span class="badge {% if user.is_admin %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ "Admin" if user.is_admin else "User" }}
+                                </span>
+                            </td>
+                            <td>{{ user.scan_results|length }}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm edit-user" data-bs-toggle="modal" data-bs-target="#editUserModal" 
+                                        data-user-id="{{ user.id }}"
+                                        data-username="{{ user.username }}"
+                                        data-email="{{ user.email }}">
+                                    Edit
+                                </button>
+                                {% if user.id != current_user.id %}
+                                <button class="btn btn-primary btn-sm ms-2 toggle-admin" data-user-id="{{ user.id }}">
+                                    {{ "Remove Admin" if user.is_admin else "Make Admin" }}
+                                </button>
+                                <button class="btn btn-primary btn-sm ms-2 delete-user" data-user-id="{{ user.id }}">
+                                    Delete
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan History -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Scan History</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Image</th>
+                            <th>Result</th>
+                            <th>Prediction Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scan, user in all_scans %}
+                        <tr>
+                            <td>{{ scan.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>
+                                <img src="{{ url_for('static', filename='uploads/' + scan.original_image) }}" 
+                                     class="img-thumbnail" style="max-width: 100px;">
+                            </td>
+                            <td>
+                                <span class="badge {% if scan.prediction == 'Fake' %}bg-danger{% else %}bg-success{% endif %}">
+                                    {{ scan.prediction }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-muted">Prediction Score: {{ "%.2f"|format(scan.confidence) }}%</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('generate_pdf_report', report_id=scan.id) }}" 
+                                   class="btn btn-primary btn-sm">
+                                    Download Report
+                                </a>
+                                <button class="btn btn-primary btn-sm ms-2 delete-scan" data-scan-id="{{ scan.id }}">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="card">
+        <div class="card-header">
+            <h4>Recent Activity</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Activity</th>
+                            <th>IP Address</th>
+                            <th>User Agent</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for activity in activities %}
+                        <tr>
+                            <td>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>{{ activity.user.username }}</td>
+                            <td>
+                                <span class="badge {% if activity.type == 'login' %}bg-success{% else %}bg-warning{% endif %}">
+                                    {{ activity.type|title }}
+                                </span>
+                            </td>
+                            <td>{{ activity.ip_address }}</td>
+                            <td>{{ activity.user_agent }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="is_admin" id="isAdmin">
+                            <label class="form-check-label" for="isAdmin">Make Admin</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveNewUser">Save User</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" name="user_id">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password (leave blank to keep current)</label>
+                        <input type="password" class="form-control" name="password">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveUserEdit">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for user management -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle admin status
+    document.querySelectorAll('.toggle-admin').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            fetch(`/toggle_admin/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            });
+        });
+    });
+
+    // Delete user
+    document.querySelectorAll('.delete-user').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this user?')) {
+                const userId = this.dataset.userId;
+                fetch(`/delete_user/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        });
+    });
+
+    // Delete scan
+    document.querySelectorAll('.delete-scan').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this scan?')) {
+                const scanId = this.dataset.scanId;
+                fetch(`/delete_scan/${scanId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        });
+    });
+
+    // Edit user modal
+    document.querySelectorAll('.edit-user').forEach(button => {
+        button.addEventListener('click', function() {
+            const form = document.getElementById('editUserForm');
+            form.querySelector('[name="user_id"]').value = this.dataset.userId;
+            form.querySelector('[name="username"]').value = this.dataset.username;
+            form.querySelector('[name="email"]').value = this.dataset.email;
+            form.querySelector('[name="password"]').value = '';
+        });
+    });
+
+    // Save user edit
+    document.getElementById('saveUserEdit').addEventListener('click', function() {
+        const form = document.getElementById('editUserForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        fetch('/edit_user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        });
+    });
+
+    // Save new user
+    document.getElementById('saveNewUser').addEventListener('click', function() {
+        const form = document.getElementById('addUserForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        fetch('/add_user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

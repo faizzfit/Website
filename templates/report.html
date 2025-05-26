@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - SecureAuth{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Scan Reports</h5>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Scan
+            </a>
+        </div>
+        <div class="card-body">
+            {% if reports %}
+                <div class="row">
+                    {% for report in reports %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100 report-card" data-report-id="{{ report.id }}">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Scan #{{ report.id }}</h5>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('generate_pdf_report', report_id=report.id) }}" 
+                                           class="btn btn-primary btn-sm" 
+                                           target="_blank"
+                                           title="Print PDF Report">
+                                            <i class="fas fa-file-pdf me-1"></i> Print PDF
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <img src="{{ url_for('static', filename='uploads/' + report.original_image) }}" 
+                                             class="img-fluid rounded" 
+                                             alt="Scanned Image"
+                                             style="max-height: 200px;">
+                                    </div>
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="badge {% if report.prediction == 'Fake' %}bg-danger{% else %}bg-success{% endif %} me-2">
+                                            {{ report.prediction }}
+                                        </span>
+                                        <span class="text-muted">Prediction Score: {{ "%.2f"|format(report.confidence) }}%</span>
+                                    </div>
+                                    <p class="text-muted mb-0">
+                                        <i class="fas fa-clock me-2"></i>
+                                        {{ report.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                    <h5>No Reports Found</h5>
+                    <p class="text-muted">Start by creating a new scan from the dashboard.</p>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> New Scan
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.report-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.report-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.btn-primary {
+    border-width: 1px;
+    padding: 0.375rem 0.75rem;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(13, 110, 253, 0.2);
+}
+
+.badge {
+    padding: 0.5em 0.8em;
+    font-weight: 500;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+.img-fluid {
+    object-fit: contain;
+}
+</style>
+
+<script>
+function printReport(reportId) {
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    
+    // Get the report card content
+    const reportCard = document.querySelector(`[data-report-id="${reportId}"]`);
+    if (!reportCard) return;
+    
+    // Create the print content
+    const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Scan Report #${reportId}</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <style>
+                body { padding: 20px; }
+                .card { border: 1px solid #ddd; }
+                .img-fluid { max-width: 100%; height: auto; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                ${reportCard.outerHTML}
+            </div>
+        </body>
+        </html>
+    `;
+    
+    // Write the content to the new window
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for images to load
+    printWindow.onload = function() {
+        printWindow.print();
+        printWindow.close();
+    };
+}
+</script>
+{% endblock %} 

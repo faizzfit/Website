@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="row align-items-center min-vh-75">
+    <div class="col-lg-6 fade-in">
+        <h1 class="display-4 fw-bold mb-4">There is a Better Way to Buto.</h1>
+        <p class="lead mb-4 text-muted">Welcome to SecureAuth, where security meets simplicity. Experience a modern approach to authentication and user management.</p>
+        {% if current_user.is_authenticated %}
+            <div class="d-grid gap-3 d-sm-flex">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+            </div>
+        {% else %}
+            <div class="d-grid gap-3 d-sm-flex">
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Get Started</a>
+                <a href="{{ url_for('register') }}" class="btn btn-secondary btn-lg">Create Account</a>
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-lg-6 d-none d-lg-block fade-in">
+        <div class="position-relative">
+            <div class="shape-decoration" style="
+                position: absolute;
+                width: 400px;
+                height: 400px;
+                background: linear-gradient(45deg, rgba(255,107,107,0.1), rgba(255,217,61,0.1));
+                border-radius: 50px;
+                transform: rotate(45deg);
+                right: -50px;
+                top: -100px;
+                z-index: -1;
+            "></div>
+            <div class="shape-decoration" style="
+                position: absolute;
+                width: 200px;
+                height: 200px;
+                background: linear-gradient(45deg, rgba(108,92,231,0.1), rgba(168,230,207,0.1));
+                border-radius: 30px;
+                transform: rotate(30deg);
+                left: 50px;
+                bottom: -50px;
+                z-index: -1;
+            "></div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

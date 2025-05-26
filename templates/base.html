@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: #ffffff;
+            --border-radius: 24px;
+            --accent-color: #ff6b6b;
+            --text-color: #2d3436;
+            --border-color: #000000;
+            --tab-height: 50px;
+        }
+
+        /* 1. Overall Page Padding */
+        body {
+            background-color: var(--border-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding: 20px; /* Reduced from 60px top padding */
+        }
+
+        /* 2. Main White Container */
+        .main-wrapper {
+            min-height: calc(100vh - 80px);
+            border-radius: var(--border-radius) 0 var(--border-radius) var(--border-radius); /* Keep top-left soft, make top-right sharp */
+            background: var(--primary-bg);
+            position: relative;
+            margin-top: calc(var(--tab-height) + 12px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 3. White Connection Bar */
+        .main-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 270px;
+            width: calc(100% - 270px);
+            height: 12px;
+            background: var(--primary-bg);
+        }
+
+        /* 4. Logo Container */
+        .navbar-brand {
+            font-weight: 650;
+            font-size: 2rem;
+            color: var(--primary-bg) !important;
+            padding: 0.5rem 2rem;
+            height: var(--tab-height);
+            display: flex;
+            align-items: center;
+            position: absolute;
+            top: 4px;
+            right: calc(100% + 20px);
+            background: transparent;
+            z-index: 3;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        /* 5. Tab Container */
+        .navbar {
+            position: absolute;
+            top: calc(-1 * (var(--tab-height) + 12px));
+            left: 280px;
+            height: var(--tab-height);
+            padding: 0;
+            background: var(--primary-bg);
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            width: calc(100% - 280px);
+            z-index: 2;
+        }
+
+        /* Navigation Container */
+        .navbar .container-fluid {
+            height: 100%;
+            padding: 0;
+            position: relative; /* For logo positioning */
+        }
+
+        /* Navigation items container */
+        .navbar-nav {
+            margin-left: 0;
+            width: 100%;
+            justify-content: flex-start;
+            padding: 0 2rem;
+            margin-top: 4px; /* Match the logo's top position */
+        }
+
+        .nav-pills-container {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 50px;
+            padding: 0.3rem;
+            position: relative;
+            margin-left: 0;
+            top: 5px;
+            height: 45px; /* You can adjust this value to make the container taller or shorter */
+            display: flex;
+            align-items: center;
+        }
+
+        /* Container content padding */
+        .container {
+            padding-top: 2rem !important;
+        }
+
+        /* Navigation pill overlay */
+        .nav-pill-overlay {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50px;
+            height: calc(100% - 6px);
+            top: 50%;
+            transform: translateY(-50%);
+            left: 3px;
+            z-index: 1;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border: 1.5px solid var(--border-color);
+        }
+
+        .nav-link {
+            color: var(--text-color) !important;
+            padding: 0.5rem 1.5rem !important;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .nav-link.active {
+            color: var(--text-color) !important;
+            font-weight: 600;
+        }
+
+        /* Card Styles */
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--border-radius);
+            pointer-events: none;
+        }
+
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        /* Form Controls */
+        .form-control {
+            border: 1.5px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.1);
+        }
+
+        /* Button Styles */
+        .btn {
+            border-radius: 50px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1.5px solid var(--border-color);
+            border-radius: 50px;
+            pointer-events: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            border: none;
+        }
+
+        .btn-primary::after {
+            border-color: transparent;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(0, 0, 0, 0.03);
+            border: none;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Alert Styles */
+        .alert {
+            border-radius: var(--border-radius);
+            border: 1.5px solid var(--border-color);
+            background: #fff;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 991.98px) {
+            .nav-pills-container {
+                margin: 1rem 0;
+            }
+        }
+
+        /* 6. Left Curved Connection */
+        .navbar::before {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: -12px;
+            width: 12px;
+            height: 12px;
+            background: var(--border-color);
+            border-bottom-right-radius: 12px;
+            z-index: 1;
+        }
+
+        /* 7. Right Curved Connection */
+        .navbar::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            right: -12px;
+            width: 12px;
+            height: 12px;
+            background: var(--border-color);
+            border-bottom-left-radius: 12px;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url_for('index') }}">SecureAuth</a>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <div class="nav-pills-container">
+                        <ul class="navbar-nav">
+                            {% if current_user.is_authenticated and current_user.is_admin and request.endpoint == 'admin_dashboard' %}
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Admin Page</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                                </li>
+                            {% else %}
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
+                                </li>
+                                {% if current_user.is_authenticated %}
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">Scan</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint == 'report' %}active{% endif %}" href="{{ url_for('report') }}">Report</a>
+                                    </li>
+                                    {% if current_user.is_admin %}
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Admin</a>
+                                    </li>
+                                    {% endif %}
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint == 'logout' %}active{% endif %}" href="{{ url_for('logout') }}">Logout</a>
+                                    </li>
+                                {% else %}
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}" href="{{ url_for('login') }}">Login</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint == 'register' %}active{% endif %}" href="{{ url_for('register') }}">Register</a>
+                                    </li>
+                                {% endif %}
+                            {% endif %}
+                            <div class="nav-pill-overlay"></div>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container py-4">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-info fade-in mb-4">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pillOverlay = document.querySelector('.nav-pill-overlay');
+            const navBar = document.querySelector('.navbar-nav');
+            
+            function positionPillOverlay(activeLink) {
+                if (!activeLink || !pillOverlay) return;
+                
+                const linkRect = activeLink.getBoundingClientRect();
+                const navRect = activeLink.closest('.navbar-nav').getBoundingClientRect();
+                
+                pillOverlay.style.width = `${linkRect.width}px`;
+                pillOverlay.style.transform = `translate(${linkRect.left - navRect.left}px, -50%)`;
+            }
+
+            // Position pill on page load - default to Home if no active link
+            let activeLink = document.querySelector('.nav-link.active');
+            if (!activeLink) {
+                activeLink = document.querySelector('.nav-link'); // Gets the first link (Home)
+                activeLink.classList.add('active');
+            }
+            
+            // Add a small delay to ensure proper positioning
+            setTimeout(() => positionPillOverlay(activeLink), 50);
+
+            // Update pill position on window resize with debounce
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    const activeLink = document.querySelector('.nav-link.active');
+                    positionPillOverlay(activeLink);
+                }, 100);
+            });
+
+            // Add hover effect with smooth transition
+            navLinks.forEach(link => {
+                link.addEventListener('mouseenter', () => {
+                    requestAnimationFrame(() => positionPillOverlay(link));
+                });
+
+                link.addEventListener('click', (e) => {
+                    if (link.getAttribute('href')) {
+                        e.preventDefault();
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        link.classList.add('active');
+                        requestAnimationFrame(() => positionPillOverlay(link));
+                        
+                        setTimeout(() => {
+                            window.location.href = link.getAttribute('href');
+                        }, 300);
+                    }
+                });
+            });
+
+            // Return to active link position when mouse leaves nav area
+            navBar.addEventListener('mouseleave', () => {
+                const activeLink = document.querySelector('.nav-link.active');
+                requestAnimationFrame(() => positionPillOverlay(activeLink));
+            });
+        });
+    </script>
+</body>
+</html> 
