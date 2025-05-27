@@ -23,6 +23,7 @@ from io import BytesIO
 from fpdf import FPDF
 import io
 import pytz
+import json
 
 class CustomSession(dict, SessionMixin):
     def __init__(self):
@@ -430,6 +431,11 @@ def register():
             flash('Email already registered')
             return redirect(url_for('register'))
         
+        # Enforce password requirements
+        if len(password) < 8 or not any(c.isdigit() for c in password) or not any(c.isalpha() for c in password):
+            flash('Password must be at least 8 characters long and contain both letters and numbers.')
+            return redirect(url_for('register'))
+        
         user = User(username=username, email=email)
         user.set_password(password)
         db.session.add(user)
@@ -447,18 +453,18 @@ def dashboard():
         
         if upload_dir is None:
             flash('Upload directory not available. Please contact administrator.', 'error')
-            return redirect(request.url)
+            return redirect(url_for('dashboard'))
             
         if 'file' not in request.files:
             print("No file in request")
             flash('No file selected', 'error')
-            return redirect(request.url)
+            return redirect(url_for('dashboard'))
         
         file = request.files['file']
         if file.filename == '':
             print("Empty filename")
             flash('No file selected', 'error')
-            return redirect(request.url)
+            return redirect(url_for('dashboard'))
         
         if file and allowed_file(file.filename):
             try:
@@ -520,7 +526,7 @@ def dashboard():
                     'modified_time': scan_result.modified_time,
                     'sha256': scan_result.sha256_hash,
                     'md5': scan_result.md5_hash,
-                    'exif': eval(scan_result.exif_data) if scan_result.exif_data.startswith('{') else scan_result.exif_data
+                    'exif': json.loads(scan_result.exif_data) if scan_result.exif_data.strip().startswith('{') else scan_result.exif_data
                 }
                 # Add the scan_result id to result for PDF download
                 result['id'] = scan_result.id
@@ -545,11 +551,11 @@ def dashboard():
                     print(f"Error during cleanup: {str(cleanup_error)}")
                 
                 flash(f'Error analyzing image: {str(e)}', 'error')
-                return redirect(request.url)
+                return redirect(url_for('dashboard'))
         else:
             print(f"Invalid file type: {file.filename}")
             flash('Invalid file type. Please upload a JPG or PNG image.', 'error')
-            return redirect(request.url)
+            return redirect(url_for('dashboard'))
     
     print("GET request - rendering empty dashboard")
     return render_template('dashboard.html')
@@ -685,6 +691,9 @@ def edit_user():
     user.username = username
     user.email = email
     if password:  # Only update password if a new one is provided
+        # Enforce password requirements
+        if len(password) < 8 or not any(c.isdigit() for c in password) or not any(c.isalpha() for c in password):
+            return jsonify({'success': False, 'message': 'Password must be at least 8 characters long and contain both letters and numbers.'})
         user.set_password(password)
     
     db.session.commit()
@@ -942,10 +951,13 @@ def generate_pdf_report(report_id):
         pdf.ln(2)
         
         try:
-            exif_data = eval(report.exif_data)
-            for key, value in exif_data.items():
-                add_metadata_row(str(key) + ":", str(value))
-        except:
+            exif_data = json.loads(report.exif_data) if report.exif_data.strip().startswith('{') else report.exif_data
+            if isinstance(exif_data, dict):
+                for key, value in exif_data.items():
+                    add_metadata_row(str(key) + ":", str(value))
+            else:
+                add_metadata_row("EXIF Data:", exif_data)
+        except Exception:
             add_metadata_row("EXIF Data:", report.exif_data)
     
     # Footer
